@@ -47,7 +47,7 @@ struct BumpCommand {
     )]
     pub component: Option<Component>,
     #[clap(long, about = "Push the new tag to a remote repository immediately", long_about = indoc!{"
-        When --push is specified, the newly created tag will be pushed to a remote repository.
+        The newly created tag will be pushed to a remote repository.
 
         The remote to push to can be overridden with --remote and defaults to 'origin'.
     "})]
@@ -55,10 +55,10 @@ struct BumpCommand {
     #[clap(long, default_value = "origin", about = "Set the remote to push to")]
     pub remote: String,
     #[clap(long, about = "Create no tags, just print the updated tag", long_about = indoc! {"
-        When the --dry-run is added, no changes will be made to the git repository at all.
+        In dry-run mode, no changes will be made to the git repository at all.
 
-        Vergit will simple take the highest absolute version (according to semantic-versioning
-        ordering) and increment by 1, then print the result.
+        Vergit will simple take the highest absolute version (according to
+        semantic-versioning ordering) and increment by 1, then print the result.
 
         For example, in a repository with only the tag 0.0.1 the following command:
             $ vergit bump patch

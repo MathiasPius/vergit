@@ -97,6 +97,23 @@ enum Commands {
 }
 
 #[derive(Clap)]
+#[clap(long_about = indoc! {"
+    Command-line utility for quickly incrementing and pushing semantic-versioning
+    tags in a git repository.
+
+    Examples:
+        Increment major version by 1, and don't print the new tag to stdout.
+            $ vergit bump major --quiet
+
+        Increment the minor version of the latest tag, and push the tag to origin
+            $ vergit bump minor --push
+
+        Increment the patch version of the latest tag, and push the tag to myremote
+            $ vergit bump patch --push --remote=myremote
+
+        Calculate the incremented tag and output it, but do not create the tag.
+            $ vergit bump prerelease --dry-run
+"})]
 struct Opts {
     #[clap(subcommand)]
     pub subcommand: Commands,

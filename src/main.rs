@@ -6,23 +6,26 @@ use git2::{Cred, CredentialType, ObjectType, PushOptions, RemoteCallbacks, Repos
 use semver::Identifier;
 
 #[derive(Clap)]
-enum VersionField {
+enum Component {
     Major,
     Minor,
     Patch,
     Prerelease,
 }
 
-impl Default for VersionField {
+impl Default for Component {
     fn default() -> Self {
-        VersionField::Patch
+        Component::Patch
     }
 }
 
 #[derive(Clap)]
 struct BumpCommand {
-    #[clap(arg_enum, about = "Defaults to 'prerelease' if current version is prerelease, otherwise 'patch'")]
-    pub version_field: Option<VersionField>,
+    #[clap(
+        arg_enum,
+        about = "Defaults to 'prerelease' if current version is prerelease, otherwise 'patch'"
+    )]
+    pub component: Option<Component>,
     #[clap(long, about = "Push the new tag to a remote repository immediately")]
     pub push: bool,
     #[clap(long, default_value = "origin", about = "Set the remote to push to")]
@@ -33,6 +36,7 @@ struct BumpCommand {
 
 #[derive(Clap)]
 enum Commands {
+    #[clap(about = "Bump the latest version tag of the git repository in the working directory")]
     Bump(BumpCommand),
 }
 
@@ -60,27 +64,27 @@ fn main() -> Result<(), anyhow::Error> {
     match &opts.subcommand {
         Commands::Bump(bump) => {
             let field_to_bump =
-                bump.version_field
+                bump.component
                     .as_ref()
                     .unwrap_or(if latest_version.is_prerelease() {
-                        &VersionField::Prerelease
+                        &Component::Prerelease
                     } else {
-                        &VersionField::Patch
+                        &Component::Patch
                     });
 
             let new_version = {
-                let mut new_version = latest_version.clone();
+                let mut new_version = latest_version;
                 match field_to_bump {
-                    VersionField::Major => {
+                    Component::Major => {
                         new_version.increment_major();
                     }
-                    VersionField::Minor => {
+                    Component::Minor => {
                         new_version.increment_minor();
                     }
-                    VersionField::Patch => {
+                    Component::Patch => {
                         new_version.increment_patch();
                     }
-                    VersionField::Prerelease => {
+                    Component::Prerelease => {
                         let identifier = new_version
                             .pre
                             .pop()

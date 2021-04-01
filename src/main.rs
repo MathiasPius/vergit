@@ -1,5 +1,8 @@
+use std::str::FromStr;
+
 use clap::Clap;
 use git2::Repository;
+use semver::Version;
 
 #[derive(Clap)]
 enum VersionField {
@@ -35,21 +38,35 @@ fn main() -> Result<(), anyhow::Error> {
     let opts = Opts::parse();
 
     let repository = Repository::open(std::env::current_dir()?)?;
-
-    let tag_names = repository.tag_names(None)?;
+    let latest_version = repository
+        .tag_names(None)?
+        .into_iter()
+        .filter_map(Option::from)
+        .map(semver::Version::from_str)
+        .filter_map(Result::ok)
+        .max()
+        .unwrap();
 
     match &opts.subcommand {
-        Commands::Bump(bump) => match bump.version_field {
-            VersionField::Major => {
-                
-            }
-            VersionField::Minor => {
+        Commands::Bump(bump) => {
+            let new_version = {
+                let mut new_version = latest_version.clone();
+                match bump.version_field {
+                    VersionField::Major => {
+                        new_version.increment_major();
+                    }
+                    VersionField::Minor => {
+                        new_version.increment_minor();
+                    }
+                    VersionField::Patch => {
+                        new_version.increment_patch();
+                    }
+                }
+                new_version
+            };
 
-            }
-            VersionField::Patch => {
-                
-            }
-        },
+            println!("bumping {:#?} => {:#?}", latest_version, new_version);
+        }
     }
 
     Ok(())

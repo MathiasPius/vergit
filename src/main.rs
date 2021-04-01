@@ -43,8 +43,12 @@ fn main() -> Result<(), anyhow::Error> {
             VersionField::Major => {
                 
             }
-            VersionField::Minor => {}
-            VersionField::Patch => {}
+            VersionField::Minor => {
+
+            }
+            VersionField::Patch => {
+                
+            }
         },
     }
 

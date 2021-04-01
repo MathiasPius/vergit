@@ -1,0 +1,11 @@
+[package]
+name = "vergit"
+version = "0.1.0"
+authors = ["Mathias Pius <contact@pius.io>"]
+edition = "2018"
+
+[dependencies]
+git2 = "0.13.17"
+semver = "0.11.0"
+anyhow = { version = "1.0" }
+clap = "3.0.0-beta.2"

@@ -1,6 +1,6 @@
 [package]
 name = "vergit"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Mathias Pius <contact@pius.io>"]
 description = "Command line tool for incrementing tags of a git repository according to the SemVer spec"
 keywords = ["git", "semver", "semantic-versioning", "tool", "command-line-utility"]

@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use anyhow::{anyhow, Context};
 use clap::Clap;
-use git2::{Cred, CredentialType, ObjectType, PushOptions, RemoteCallbacks, Repository};
+use git2::{Cred, CredentialType, ObjectType, PushOptions, RemoteCallbacks, Repository, Sort};
 use indoc::indoc;
 use semver::Identifier;
 
@@ -46,19 +46,29 @@ struct BumpCommand {
         "}
     )]
     pub component: Option<Component>,
+
     #[clap(long, about = "Push the new tag to a remote repository immediately", long_about = indoc!{"
         The newly created tag will be pushed to a remote repository.
 
         The remote to push to can be overridden with --remote and defaults to 'origin'.
     "})]
     pub push: bool,
+
+    #[clap(long, about = "Search all tags within the repository, not just the immediate history of this branch", long_about = indoc! {"
+        Instead of walking backwards in the currently checkout history to find a tag to increment,
+        vergit will look at all tags in the entire repository and increment the highest absolute
+        version it can find.
+    "})]
+    pub global: bool,
+
     #[clap(long, default_value = "origin", about = "Set the remote to push to")]
     pub remote: String,
+
     #[clap(long, about = "Create no tags, just print the updated tag", long_about = indoc! {"
         In dry-run mode, no changes will be made to the git repository at all.
 
-        Vergit will simple take the highest absolute version (according to
-        semantic-versioning ordering) and increment by 1, then print the result.
+        Vergit will simply take the highest version (according to semantic-versioning
+        ordering) and increment by 1, then print the result.
 
         For example, in a repository with only the tag 0.0.1 the following command:
             $ vergit bump patch
@@ -76,13 +86,13 @@ enum Commands {
     #[clap(
         about = "Bump the latest version tag of the git repository in the working directory",
         long_about = indoc! {"
-            Takes the highest absolute tag (according to semantic-versioning ordering) of
-            the repository in the working directory that abides by the semantic-versioning
-            spec, and increases the <component> of the version tag by one.
+            Takes the most recent tag (according to semantic-versioning ordering) of the
+            current branch of the repository in the working directory that abides by and
+            increases the <component> of the version tag by one.
 
             For example:
                 Running the following command
-                    $ vergit bump minor
+                    $ vergit bump minor --global
             
                 In a repository with the following tags:
                     hello-world
@@ -101,7 +111,13 @@ enum Commands {
     Command-line utility for quickly incrementing and pushing semantic-versioning
     tags in a git repository.
 
+    By default vergit will go backwards in history from HEAD and find the latest
+    tagged commit and increment that, unless the --global flag is specified.
+
     Examples:
+        Increment the highest tag in the entire repository by one.
+            $ vergit bump major --global
+
         Increment major version by 1, and don't print the new tag to stdout.
             $ vergit bump major --quiet
 
@@ -124,18 +140,40 @@ struct Opts {
 fn main() -> Result<(), anyhow::Error> {
     let opts = Opts::parse();
 
-    let repository = Repository::open(std::env::current_dir()?)?;
-    let latest_version = repository
-        .tag_names(None)?
-        .into_iter()
-        .filter_map(Option::from)
-        .map(semver::Version::from_str)
-        .filter_map(Result::ok)
-        .max()
-        .unwrap();
-
     match &opts.subcommand {
         Commands::Bump(bump) => {
+            let repository = Repository::open(std::env::current_dir()?)?;
+
+            let latest_version = if bump.global {
+                repository
+                    .tag_names(None)?
+                    .into_iter()
+                    .filter_map(Option::from)
+                    .map(semver::Version::from_str)
+                    .filter_map(Result::ok)
+                    .max()
+            } else {
+                let mut revwalk = repository.revwalk()?;
+                revwalk.set_sorting(Sort::REVERSE)?;
+                revwalk.push(
+                    repository
+                        .head()?
+                        .target()
+                        .with_context(|| "HEAD does not point anyhwere?")?,
+                )?;
+
+                revwalk
+                    .filter_map(Result::ok)
+                    .map(|oid| repository.find_tag(oid))
+                    .filter_map(Result::ok)
+                    .filter_map(Option::from)
+                    .map(|tag| tag.name().map(semver::Version::from_str))
+                    .filter_map(Option::from)
+                    .filter_map(Result::ok)
+                    .next()
+            }
+            .with_context(|| "No semantic versioning tags found")?;
+
             let field_to_bump =
                 bump.component
                     .as_ref()

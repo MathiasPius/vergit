@@ -30,8 +30,8 @@ struct BumpCommand {
             otherwise it will default to 'patch'. If prerelease is specified, but no 
             prerelease component is found, it will fail.
 
-            Bumping prerelease tags only works, if the last identifier of the prerelease
-            component of version string is numeric.
+            Bumping prerelease tags only works if the last identifier of the prerelease
+            component of the version string is numeric.
             
             For example, the following tags CANNOT be bumped using the prerelease command:
                 0.0.1           No prerelease tag found
@@ -55,9 +55,9 @@ struct BumpCommand {
     pub push: bool,
 
     #[clap(long, about = "Search all tags within the repository, not just the immediate history of this branch", long_about = indoc! {"
-        Instead of walking backwards in the currently checkout history to find a tag to increment,
-        vergit will look at all tags in the entire repository and increment the highest absolute
-        version it can find.
+        Instead of walking backwards in the currently checked out history to find a tag 
+        to increment, vergit will look at all tags in the entire repository and increment 
+        the highest absolute version it can find.
     "})]
     pub global: bool,
 
@@ -65,10 +65,8 @@ struct BumpCommand {
     pub remote: String,
 
     #[clap(long, about = "Create no tags, just print the updated tag", long_about = indoc! {"
-        In dry-run mode, no changes will be made to the git repository at all.
-
-        Vergit will simply take the highest version (according to semantic-versioning
-        ordering) and increment by 1, then print the result.
+        In dry-run mode, no changes will be made to the git repository at all, the
+        resulting new tag that would otherwise be created is just printed instead.
 
         For example, in a repository with only the tag 0.0.1 the following command:
             $ vergit bump patch
@@ -87,8 +85,8 @@ enum Commands {
         about = "Bump the latest version tag of the git repository in the working directory",
         long_about = indoc! {"
             Takes the most recent tag (according to semantic-versioning ordering) of the
-            current branch of the repository in the working directory that abides by and
-            increases the <component> of the version tag by one.
+            current branch of the repository in the working directory and increases the
+            <component> of the version tag by one.
 
             For example:
                 Running the following command

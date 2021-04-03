@@ -44,7 +44,7 @@ jobs:
 
       - name: Pack binaries if unix
         if: matrix.config.os != 'windows-latest'
-        run: tar -C ./target/release/vergit -czvf vergit-${{ steps.get_version.outputs.version }}-${{ matrix.config.target }}.tar.gz vergit
+        run: tar -C ./target/release -czvf vergit-${{ steps.get_version.outputs.version }}-${{ matrix.config.target }}.tar.gz vergit
 
       - name: Pack binaries if windows
         if: matrix.config.os == 'windows-latest'

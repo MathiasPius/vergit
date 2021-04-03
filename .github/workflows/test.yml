@@ -6,7 +6,7 @@ on:
     branches:
       - master
 
-name: library-tests
+name: tests
 
 jobs:
   lint:

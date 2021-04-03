@@ -72,7 +72,7 @@ struct BumpCommand {
         resulting new tag that would otherwise be created is just printed instead.
 
         For example, in a repository with only the tag 0.0.1 the following command:
-            $ vergit bump patch
+            $ vergit bump patch --dry-run
         
         Will yield the following output to stdout:
             0.0.2

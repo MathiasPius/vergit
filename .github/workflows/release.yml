@@ -25,7 +25,8 @@ jobs:
           tag_prefix: ""
           custom_tag: ${{ steps.retrieve_tag.outputs.crate-tag }}
 
-      - uses: katyo/publish-crates@v1
+      - name: Publish crate to crates.io
+        uses: katyo/publish-crates@v1
         with:
           registry-token: ${{ secrets.CARGO_LOGIN_TOKEN }}
 

@@ -48,7 +48,7 @@ jobs:
 
       - name: Pack binaries if windows
         if: matrix.config.os == 'windows-latest'
-        run: compress-archive ./target/release/vergit vergit-${{ steps.get_version.outputs.version }}-${{ matrix.config.target }}.zip
+        run: compress-archive ./target/release/vergit.exe vergit-${{ steps.get_version.outputs.version }}-${{ matrix.config.target }}.zip
 
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v1-release

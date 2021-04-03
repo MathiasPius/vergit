@@ -154,7 +154,6 @@ fn main() -> Result<(), anyhow::Error> {
                     .filter_map(Result::ok)
                     .max()
             } else {
-
                 let mut describe_options = DescribeOptions::new();
                 describe_options.describe_tags();
 
@@ -162,7 +161,9 @@ fn main() -> Result<(), anyhow::Error> {
                 describe_format.abbreviated_size(0);
 
                 let tag_name = repository.describe(&describe_options)?.format(Some(&describe_format))?;
-                Some(Version::from_str(&tag_name).with_context(|| anyhow!("The atest tag in the current branch does not conform to the semantic versioning spec: {}", tag_name))?)
+                Some(Version::from_str(&tag_name)
+                    .with_context(|| anyhow!("The latest tag in the current branch does not conform to the semantic versioning spec: {}", tag_name)
+                )?)
             }
             .with_context(|| "No semantic versioning tags found")?;
 

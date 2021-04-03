@@ -2,9 +2,12 @@ use std::str::FromStr;
 
 use anyhow::{anyhow, Context};
 use clap::Clap;
-use git2::{Cred, CredentialType, ObjectType, PushOptions, RemoteCallbacks, Repository, Sort};
+use git2::{
+    Cred, CredentialType, DescribeFormatOptions, DescribeOptions, ObjectType, PushOptions,
+    RemoteCallbacks, Repository,
+};
 use indoc::indoc;
-use semver::Identifier;
+use semver::{Identifier, Version};
 
 #[derive(Clap)]
 enum Component {
@@ -151,24 +154,15 @@ fn main() -> Result<(), anyhow::Error> {
                     .filter_map(Result::ok)
                     .max()
             } else {
-                let mut revwalk = repository.revwalk()?;
-                revwalk.set_sorting(Sort::REVERSE)?;
-                revwalk.push(
-                    repository
-                        .head()?
-                        .target()
-                        .with_context(|| "HEAD does not point anyhwere?")?,
-                )?;
 
-                revwalk
-                    .filter_map(Result::ok)
-                    .map(|oid| repository.find_tag(oid))
-                    .filter_map(Result::ok)
-                    .filter_map(Option::from)
-                    .map(|tag| tag.name().map(semver::Version::from_str))
-                    .filter_map(Option::from)
-                    .filter_map(Result::ok)
-                    .next()
+                let mut describe_options = DescribeOptions::new();
+                describe_options.describe_tags();
+
+                let mut describe_format = DescribeFormatOptions::new();
+                describe_format.abbreviated_size(0);
+
+                let tag_name = repository.describe(&describe_options)?.format(Some(&describe_format))?;
+                Some(Version::from_str(&tag_name).with_context(|| anyhow!("The atest tag in the current branch does not conform to the semantic versioning spec: {}", tag_name))?)
             }
             .with_context(|| "No semantic versioning tags found")?;
 

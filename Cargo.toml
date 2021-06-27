@@ -1,6 +1,6 @@
 [package]
 name = "vergit"
-version = "0.2.9"
+version = "0.2.10"
 authors = ["Mathias Pius <contact@pius.io>"]
 description = "Command line tool for incrementing tags of a git repository according to the SemVer spec"
 keywords = ["git", "semver", "semantic-versioning", "tool", "command-line-utility"]
@@ -10,7 +10,7 @@ edition = "2018"
 
 [dependencies]
 git2 = "0.13.17"
-semver = "0.11.0"
+semver = "1.0.3"
 anyhow = { version = "1.0" }
 clap = "3.0.0-beta.2"
 indoc = "1.0.3"

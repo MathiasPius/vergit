@@ -1,13 +1,10 @@
-use std::str::FromStr;
+use std::{path::PathBuf, str::FromStr, u64};
 
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use clap::Clap;
-use git2::{
-    Cred, CredentialType, DescribeFormatOptions, DescribeOptions, ObjectType, PushOptions,
-    RemoteCallbacks, Repository,
-};
+use git2::{Cred, CredentialType, ObjectType, PushOptions, RemoteCallbacks, Repository};
 use indoc::indoc;
-use semver::{Identifier, Version};
+use semver::Prerelease;
 
 #[derive(Clap)]
 enum Component {
@@ -63,6 +60,12 @@ struct BumpCommand {
         the highest absolute version it can find.
     "})]
     pub global: bool,
+
+    #[clap(
+        long,
+        about = "Path of the git repository to bump [default: . (current working directory)]"
+    )]
+    pub path: Option<String>,
 
     #[clap(long, default_value = "origin", about = "Set the remote to push to")]
     pub remote: String,
@@ -143,34 +146,54 @@ fn main() -> Result<(), anyhow::Error> {
 
     match &opts.subcommand {
         Commands::Bump(bump) => {
-            let repository = Repository::open(std::env::current_dir()?)?;
+            let path = match &bump.path {
+                Some(path) => Ok(PathBuf::from(path)),
+                None => std::env::current_dir(),
+            }?;
+
+            let repository = Repository::open(path)?;
+
+            let all_versions: Vec<_> = repository
+                .tag_names(None)?
+                .into_iter()
+                .filter_map(Option::from)
+                .map(semver::Version::from_str)
+                .filter_map(Result::ok)
+                .collect();
 
             let latest_version = if bump.global {
-                repository
-                    .tag_names(None)?
-                    .into_iter()
-                    .filter_map(Option::from)
-                    .map(semver::Version::from_str)
-                    .filter_map(Result::ok)
-                    .max()
+                all_versions.into_iter().max()
             } else {
-                let mut describe_options = DescribeOptions::new();
-                describe_options.describe_tags();
-
-                let mut describe_format = DescribeFormatOptions::new();
-                describe_format.abbreviated_size(0);
-
-                let tag_name = repository.describe(&describe_options)?.format(Some(&describe_format))?;
-                Some(Version::from_str(&tag_name)
-                    .with_context(|| anyhow!("The latest tag in the current branch does not conform to the semantic versioning spec: {}", tag_name)
-                )?)
+                // Find all the tags which are pointing to the commit, pointed to by HEAD
+                // I previously used the git describe functionality for this, but if you
+                // had two tags pointing at the same commit for example, it would  only
+                // return one of the tags, which meant if you had two tags like for instance:
+                //      0.0.10
+                //      0.0.9
+                //
+                // pointing to the same commit, Describe would not order them correctly
+                // according to the semver spec, instead using plain ASCIIbetical ordering,
+                // meaning 0.0.9 would incorrectly be considered the latest version.
+                let head_commit = repository.head()?.peel_to_commit()?.id();
+                all_versions
+                    .into_iter()
+                    .filter(|v| {
+                        repository
+                            .refname_to_id(&v.to_string())
+                            .map_or(true, |tag_id| {
+                                repository
+                                    .find_tag(tag_id)
+                                    .map_or(true, |tag| tag.target_id() != head_commit)
+                            })
+                    })
+                    .max()
             }
             .with_context(|| "No semantic versioning tags found")?;
 
             let field_to_bump =
                 bump.component
                     .as_ref()
-                    .unwrap_or(if latest_version.is_prerelease() {
+                    .unwrap_or(if !latest_version.pre.is_empty() {
                         &Component::Prerelease
                     } else {
                         &Component::Patch
@@ -180,27 +203,26 @@ fn main() -> Result<(), anyhow::Error> {
                 let mut new_version = latest_version;
                 match field_to_bump {
                     Component::Major => {
-                        new_version.increment_major();
+                        new_version.major += 1;
                     }
                     Component::Minor => {
-                        new_version.increment_minor();
+                        new_version.minor += 1;
                     }
                     Component::Patch => {
-                        new_version.increment_patch();
+                        new_version.patch += 1;
                     }
                     Component::Prerelease => {
-                        let identifier = new_version
-                            .pre
-                            .pop()
-                            .with_context(|| anyhow!("no prerelease identifiers found"))?;
+                        let prerelease = &new_version.pre;
 
-                        new_version.pre.push(match identifier {
-                            Identifier::AlphaNumeric(identifier) => Err(anyhow!(
-                                "latest version identifier is not purely numeric: {}",
-                                identifier
-                            )),
-                            Identifier::Numeric(number) => Ok(Identifier::Numeric(number + 1)),
-                        }?);
+                        let (head, prerelease_version) =
+                            prerelease.rsplit_once(".").unwrap_or(("", prerelease));
+
+                        let bumped_pre = prerelease_version.parse::<u64>().with_context(|| {
+                            "numeric part of prerelease is not a valid non-zero integer"
+                        })? + 1;
+
+                        new_version.pre = Prerelease::from_str(&format!("{}.{}", head, bumped_pre))
+                            .with_context(|| "failed to rebuild prerelease tag after increment")?;
                     }
                 }
                 new_version

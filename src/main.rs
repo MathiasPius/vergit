@@ -221,8 +221,12 @@ fn main() -> Result<(), anyhow::Error> {
                             "numeric part of prerelease is not a valid non-zero integer"
                         })? + 1;
 
-                        new_version.pre = Prerelease::from_str(&format!("{}.{}", head, bumped_pre))
-                            .with_context(|| "failed to rebuild prerelease tag after increment")?;
+                        new_version.pre = if head.is_empty() {
+                            Prerelease::from_str(&format!("{}", bumped_pre))
+                        } else {
+                            Prerelease::from_str(&format!("{}.{}", head, bumped_pre))
+                        }
+                        .with_context(|| "failed to rebuild prerelease tag after increment")?;
                     }
                 }
                 new_version

@@ -82,6 +82,9 @@ FLAGS:
 
 
 OPTIONS:
+        --path <path>
+            Path of the git repository to bump [default: . (current working directory)]
+
         --remote <remote>
             Set the remote to push to [default: origin]
 ```

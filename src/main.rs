@@ -1,12 +1,12 @@
 use std::{path::PathBuf, str::FromStr, u64};
 
 use anyhow::Context;
-use clap::Clap;
+use clap::{arg, Parser, Subcommand, ValueEnum};
 use git2::{Cred, CredentialType, ObjectType, PushOptions, RemoteCallbacks, Repository};
 use indoc::indoc;
 use semver::Prerelease;
 
-#[derive(Clap)]
+#[derive(Clone, ValueEnum)]
 enum Component {
     Major,
     Minor,
@@ -20,12 +20,12 @@ impl Default for Component {
     }
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 struct BumpCommand {
-    #[clap(
-        arg_enum,
-        about = "Defaults to 'prerelease' if version has prerelease, otherwise 'patch'",
-        long_about = indoc! {"
+    #[arg(
+        value_enum,
+        help = "Defaults to 'prerelease' if version has prerelease, otherwise 'patch'",
+        long_help = indoc! {"
             Defaults to 'prerelease' if current version contains a prerelease component,
             otherwise it will default to 'patch'. If prerelease is specified, but no 
             prerelease component is found, it will fail.
@@ -47,30 +47,30 @@ struct BumpCommand {
     )]
     pub component: Option<Component>,
 
-    #[clap(long, about = "Push the new tag to a remote repository immediately", long_about = indoc!{"
+    #[arg(long, help = "Push the new tag to a remote repository immediately", long_help = indoc!{"
         The newly created tag will be pushed to a remote repository.
 
         The remote to push to can be overridden with --remote and defaults to 'origin'.
     "})]
     pub push: bool,
 
-    #[clap(long, about = "Search all tags within the repository, not just the immediate history of this branch", long_about = indoc! {"
+    #[arg(long, help = "Search all tags within the repository, not just the immediate history of this branch", long_help = indoc! {"
         Instead of walking backwards in the currently checked out history to find a tag 
         to increment, vergit will look at all tags in the entire repository and increment 
         the highest absolute version it can find.
     "})]
     pub global: bool,
 
-    #[clap(
+    #[arg(
         long,
-        about = "Path of the git repository to bump [default: . (current working directory)]"
+        help = "Path of the git repository to bump [default: . (current working directory)]"
     )]
     pub path: Option<String>,
 
-    #[clap(long, default_value = "origin", about = "Set the remote to push to")]
+    #[arg(long, default_value = "origin", help = "Set the remote to push to")]
     pub remote: String,
 
-    #[clap(long, about = "Create no tags, just print the updated tag", long_about = indoc! {"
+    #[arg(long, help = "Create no tags, just print the updated tag", long_help = indoc! {"
         In dry-run mode, no changes will be made to the git repository at all, the
         resulting new tag that would otherwise be created is just printed instead.
 
@@ -85,9 +85,9 @@ struct BumpCommand {
     pub dry_run: bool,
 }
 
-#[derive(Clap)]
+#[derive(Subcommand)]
 enum Commands {
-    #[clap(
+    #[command(
         about = "Bump the latest version tag of the git repository in the working directory",
         long_about = indoc! {"
             Takes the most recent tag (according to semantic-versioning ordering) of the
@@ -110,7 +110,7 @@ enum Commands {
     Bump(BumpCommand),
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 #[clap(long_about = indoc! {"
     Command-line utility for quickly incrementing and pushing semantic-versioning
     tags in a git repository.
@@ -135,9 +135,9 @@ enum Commands {
             $ vergit bump prerelease --dry-run
 "})]
 struct Opts {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     pub subcommand: Commands,
-    #[clap(short, long, about = "Don't print the updated tag")]
+    #[arg(short, long, help = "Don't print the updated tag")]
     pub quiet: bool,
 }
 

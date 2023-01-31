@@ -53,7 +53,7 @@ jobs:
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v1-release
         with:
-          repo_token: ${{ secrets.RELEASE_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: vergit-${{ steps.get_version.outputs.version }}-${{ matrix.config.target }}.*
           asset_name: vergit-${{ steps.get_version.outputs.version }}-${{ matrix.config.target }}
           tag: ${{ github.ref }}

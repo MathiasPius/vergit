@@ -6,8 +6,7 @@ use git2::{Cred, CredentialType, ObjectType, PushOptions, RemoteCallbacks, Repos
 use indoc::indoc;
 use semver::Prerelease;
 
-#[derive(Clone, ValueEnum)]
-#[derive(Default)]
+#[derive(Clone, ValueEnum, Default)]
 enum Component {
     Major,
     Minor,
@@ -15,8 +14,6 @@ enum Component {
     Patch,
     Prerelease,
 }
-
-
 
 #[derive(Parser)]
 struct BumpCommand {

@@ -7,18 +7,16 @@ use indoc::indoc;
 use semver::Prerelease;
 
 #[derive(Clone, ValueEnum)]
+#[derive(Default)]
 enum Component {
     Major,
     Minor,
+    #[default]
     Patch,
     Prerelease,
 }
 
-impl Default for Component {
-    fn default() -> Self {
-        Component::Patch
-    }
-}
+
 
 #[derive(Parser)]
 struct BumpCommand {
@@ -215,16 +213,16 @@ fn main() -> Result<(), anyhow::Error> {
                         let prerelease = &new_version.pre;
 
                         let (head, prerelease_version) =
-                            prerelease.rsplit_once(".").unwrap_or(("", prerelease));
+                            prerelease.rsplit_once('.').unwrap_or(("", prerelease));
 
                         let bumped_pre = prerelease_version.parse::<u64>().with_context(|| {
                             "numeric part of prerelease is not a valid non-zero integer"
                         })? + 1;
 
                         new_version.pre = if head.is_empty() {
-                            Prerelease::from_str(&format!("{}", bumped_pre))
+                            Prerelease::from_str(&format!("{bumped_pre}"))
                         } else {
-                            Prerelease::from_str(&format!("{}.{}", head, bumped_pre))
+                            Prerelease::from_str(&format!("{head}.{bumped_pre}"))
                         }
                         .with_context(|| "failed to rebuild prerelease tag after increment")?;
                     }
@@ -236,7 +234,7 @@ fn main() -> Result<(), anyhow::Error> {
                 let signature = repository.signature()?;
 
                 let tag = repository.find_tag(repository.tag(
-                    &format!("{}", new_version),
+                    &format!("{new_version}"),
                     &repository.head()?.peel(ObjectType::Commit)?,
                     &signature,
                     "",
@@ -274,7 +272,7 @@ fn main() -> Result<(), anyhow::Error> {
             }
 
             if !opts.quiet {
-                println!("{}", new_version);
+                println!("{new_version}");
             }
         }
     }
